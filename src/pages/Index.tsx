@@ -365,36 +365,220 @@ function SearchSection() {
   );
 }
 
+const NEON_COLORS = [
+  { hex: "#00ffff", label: "CYAN" },
+  { hex: "#bf00ff", label: "PURPLE" },
+  { hex: "#ff0080", label: "PINK" },
+  { hex: "#00ff41", label: "GREEN" },
+  { hex: "#ff6600", label: "ORANGE" },
+  { hex: "#ffff00", label: "YELLOW" },
+  { hex: "#ffffff", label: "WHITE" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "online", label: "В СЕТИ", color: "#00ff41" },
+  { value: "away", label: "НЕ АКТИВЕН", color: "#ffaa00" },
+  { value: "offline", label: "ОФФЛАЙН", color: "#444" },
+];
+
 function ProfileSection() {
   const [glitch, setGlitch] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const [name, setName] = useState(() => localStorage.getItem("taxe_name") || "TX_U53R");
+  const [bio, setBio] = useState(() => localStorage.getItem("taxe_bio") || "");
+  const [color, setColor] = useState(() => localStorage.getItem("taxe_color") || "#00ffff");
+  const [status, setStatus] = useState(() => localStorage.getItem("taxe_status") || "online");
+
+  const [draftName, setDraftName] = useState(name);
+  const [draftBio, setDraftBio] = useState(bio);
+  const [draftColor, setDraftColor] = useState(color);
+  const [draftStatus, setDraftStatus] = useState(status);
+
+  const avatarText = (draftName || name).slice(0, 2).toUpperCase();
+
   useEffect(() => {
     const t = setInterval(() => { setGlitch(true); setTimeout(() => setGlitch(false), 300); }, 6000);
     return () => clearInterval(t);
   }, []);
 
+  const handleEdit = () => {
+    setDraftName(name);
+    setDraftBio(bio);
+    setDraftColor(color);
+    setDraftStatus(status);
+    setEditing(true);
+  };
+
+  const handleSave = () => {
+    const trimmed = draftName.trim() || "TX_U53R";
+    setName(trimmed);
+    setBio(draftBio.trim());
+    setColor(draftColor);
+    setStatus(draftStatus);
+    localStorage.setItem("taxe_name", trimmed);
+    localStorage.setItem("taxe_bio", draftBio.trim());
+    localStorage.setItem("taxe_color", draftColor);
+    localStorage.setItem("taxe_status", draftStatus);
+    setEditing(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const currentStatus = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-4 border-b" style={{ borderColor: "rgba(0,255,255,0.1)" }}>
-        <div className="text-xs tracking-widest mb-1" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>ИДЕНТИФИКАЦИЯ</div>
-        <div className="text-lg" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, color: "#00ffff", textShadow: "0 0 15px #00ffff" }}>ПРОФИЛЬ</div>
+      <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "rgba(0,255,255,0.1)" }}>
+        <div>
+          <div className="text-xs tracking-widest mb-1" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>ИДЕНТИФИКАЦИЯ</div>
+          <div className="text-lg" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, color: "#00ffff", textShadow: "0 0 15px #00ffff" }}>ПРОФИЛЬ</div>
+        </div>
+        {!editing ? (
+          <button onClick={handleEdit} className="flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs tracking-widest transition-all"
+            style={{ border: "1px solid rgba(0,255,255,0.3)", color: "#00ffff", fontFamily: "'Share Tech Mono', monospace" }}>
+            <Icon name="Pencil" size={12} /> ИЗМЕНИТЬ
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-sm text-xs tracking-widest"
+              style={{ border: "1px solid rgba(255,255,255,0.1)", color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>
+              ОТМЕНА
+            </button>
+            <button onClick={handleSave} className="px-3 py-1.5 rounded-sm text-xs tracking-widest"
+              style={{ border: "1px solid #00ffff", color: "#00ffff", background: "rgba(0,255,255,0.1)", fontFamily: "'Share Tech Mono', monospace", boxShadow: "0 0 10px rgba(0,255,255,0.2)" }}>
+              СОХРАНИТЬ
+            </button>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col items-center pt-10 pb-6 px-6">
+
+      {saved && (
+        <div className="mx-4 mt-3 px-4 py-2 rounded-sm text-xs tracking-widest text-center"
+          style={{ border: "1px solid #00ff41", color: "#00ff41", background: "rgba(0,255,65,0.08)", fontFamily: "'Share Tech Mono', monospace" }}>
+          ✓ ПРОФИЛЬ ОБНОВЛЁН
+        </div>
+      )}
+
+      <div className="flex flex-col items-center pt-8 pb-6 px-6">
+        {/* Avatar */}
         <div className="relative mb-6">
-          <div className={`w-24 h-24 rounded-sm flex items-center justify-center text-4xl font-bold ${glitch ? "glitch-text" : ""}`}
-            data-text="TX"
+          <div className={`w-24 h-24 rounded-sm flex items-center justify-center text-3xl font-bold transition-all duration-300 ${glitch && !editing ? "glitch-text" : ""}`}
+            data-text={avatarText}
             style={{
               fontFamily: "'Orbitron', sans-serif",
-              background: "linear-gradient(135deg, rgba(0,255,255,0.1), rgba(191,0,255,0.1))",
-              border: "2px solid rgba(0,255,255,0.5)",
-              color: "#00ffff",
-              boxShadow: "0 0 30px rgba(0,255,255,0.3), inset 0 0 20px rgba(0,255,255,0.05)",
-            }}>TX</div>
-          <div className="absolute -bottom-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#00ff41", boxShadow: "0 0 8px #00ff41" }}>
+              background: `linear-gradient(135deg, ${editing ? draftColor : color}18, ${editing ? draftColor : color}08)`,
+              border: `2px solid ${editing ? draftColor : color}80`,
+              color: editing ? draftColor : color,
+              boxShadow: `0 0 30px ${editing ? draftColor : color}30, inset 0 0 20px ${editing ? draftColor : color}08`,
+            }}>
+            {avatarText}
+          </div>
+          <div className="absolute -bottom-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{ background: currentStatus.color, boxShadow: `0 0 8px ${currentStatus.color}` }}>
             <div className="w-2 h-2 rounded-full bg-black" />
           </div>
         </div>
-        <div className="text-2xl font-bold mb-1" style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: "0.2em", color: "#00ffff", textShadow: "0 0 15px #00ffff" }}>TX_U53R</div>
-        <div className="flex items-center gap-1 mb-8" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "#00ff41", textShadow: "0 0 5px #00ff41", letterSpacing: "0.1em" }}>● АКТИВНЫЙ АГЕНТ</div>
+
+        {/* Name */}
+        {editing ? (
+          <div className="w-full mb-3">
+            <div className="text-xs tracking-widest mb-1.5" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>ИМЯ АГЕНТА</div>
+            <input
+              className="w-full px-3 py-2.5 rounded-sm bg-transparent outline-none text-center text-lg font-bold"
+              style={{
+                border: `1px solid ${draftColor}60`,
+                color: draftColor,
+                fontFamily: "'Orbitron', sans-serif",
+                letterSpacing: "0.15em",
+                caretColor: draftColor,
+                background: `${draftColor}05`,
+              }}
+              value={draftName}
+              onChange={e => setDraftName(e.target.value)}
+              maxLength={20}
+              placeholder="TX_U53R"
+            />
+          </div>
+        ) : (
+          <div className="text-2xl font-bold mb-1" style={{ fontFamily: "'Orbitron', sans-serif", letterSpacing: "0.2em", color, textShadow: `0 0 15px ${color}` }}>
+            {name}
+          </div>
+        )}
+
+        {/* Bio */}
+        {editing ? (
+          <div className="w-full mb-4">
+            <div className="text-xs tracking-widest mb-1.5" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>СТАТУС / БИО</div>
+            <input
+              className="w-full px-3 py-2 rounded-sm bg-transparent outline-none text-sm"
+              style={{
+                border: "1px solid rgba(0,255,255,0.2)",
+                color: "#00ffff",
+                fontFamily: "'IBM Plex Mono', monospace",
+                caretColor: "#00ffff",
+                background: "rgba(0,255,255,0.03)",
+              }}
+              value={draftBio}
+              onChange={e => setDraftBio(e.target.value)}
+              maxLength={40}
+              placeholder="Твой статус или девиз..."
+            />
+          </div>
+        ) : (
+          <div className="mb-2 text-xs text-center" style={{ color: "#446", fontFamily: "'IBM Plex Mono', monospace", minHeight: "16px" }}>
+            {bio || ""}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 mb-8" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: currentStatus.color, textShadow: `0 0 5px ${currentStatus.color}`, letterSpacing: "0.1em" }}>
+          ● {currentStatus.label}
+        </div>
+
+        {/* Color picker */}
+        {editing && (
+          <div className="w-full mb-6">
+            <div className="text-xs tracking-widest mb-3" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>ЦВЕТ АВАТАРА</div>
+            <div className="flex gap-2 flex-wrap">
+              {NEON_COLORS.map(c => (
+                <button key={c.hex} onClick={() => setDraftColor(c.hex)}
+                  className="w-9 h-9 rounded-sm transition-all duration-200 flex items-center justify-center"
+                  style={{
+                    background: `${c.hex}20`,
+                    border: `2px solid ${draftColor === c.hex ? c.hex : "transparent"}`,
+                    boxShadow: draftColor === c.hex ? `0 0 12px ${c.hex}` : "none",
+                  }}>
+                  <div className="w-4 h-4 rounded-sm" style={{ background: c.hex }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Status picker */}
+        {editing && (
+          <div className="w-full mb-6">
+            <div className="text-xs tracking-widest mb-3" style={{ color: "#446", fontFamily: "'Share Tech Mono', monospace" }}>СТАТУС</div>
+            <div className="flex gap-2">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s.value} onClick={() => setDraftStatus(s.value)}
+                  className="flex-1 py-2 rounded-sm text-xs tracking-widest transition-all"
+                  style={{
+                    border: `1px solid ${draftStatus === s.value ? s.color : "rgba(255,255,255,0.08)"}`,
+                    color: draftStatus === s.value ? s.color : "#446",
+                    background: draftStatus === s.value ? `${s.color}10` : "transparent",
+                    fontFamily: "'Share Tech Mono', monospace",
+                    boxShadow: draftStatus === s.value ? `0 0 8px ${s.color}40` : "none",
+                  }}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 w-full mb-8">
           {[{ label: "ЧАТОВ", value: "3" }, { label: "КОНТАКТОВ", value: "6" }, { label: "СООБЩЕНИЙ", value: "48" }].map(s => (
             <div key={s.label} className="flex flex-col items-center p-3 rounded-sm" style={{ border: "1px solid rgba(0,255,255,0.15)", background: "rgba(0,255,255,0.03)" }}>
@@ -403,10 +587,10 @@ function ProfileSection() {
             </div>
           ))}
         </div>
+
+        {/* Info */}
         <div className="w-full space-y-3">
           {[
-            { label: "ID", value: "TX#00420" },
-            { label: "СТАТУС", value: "В СЕТИ" },
             { label: "ШИФРОВАНИЕ", value: "AES-256-GCM" },
             { label: "КЛЮЧ", value: "••••••••••••••••" },
           ].map(item => (
