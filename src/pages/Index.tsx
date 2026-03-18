@@ -91,7 +91,7 @@ function Avatar({ contact, size = 36 }: { contact: typeof CONTACTS[0]; size?: nu
   );
 }
 
-function ChatView({ chat, onBack }: { chat: typeof CHATS_DATA[0]; onBack: () => void }) {
+function ChatView({ chat, onBack, myName, myColor }: { chat: typeof CHATS_DATA[0]; onBack: () => void; myName: string; myColor: string }) {
   const [messages, setMessages] = useState(chat.messages);
   const [input, setInput] = useState("");
   const [encrypting, setEncrypting] = useState(false);
@@ -139,12 +139,15 @@ function ChatView({ chat, onBack }: { chat: typeof CHATS_DATA[0]; onBack: () => 
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ backgroundImage: "linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px)", backgroundSize: "40px 40px" }}>
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sent ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-sm`}
+          <div key={msg.id} className={`flex flex-col gap-1 ${msg.sent ? "items-end" : "items-start"}`}>
+            <div className="text-xs px-1" style={{ color: "#335", fontFamily: "'Share Tech Mono', monospace", fontSize: "9px" }}>
+              {msg.sent ? myName : chat.contact.name}
+            </div>
+            <div className="max-w-xs lg:max-w-md px-4 py-2.5 rounded-sm"
               style={msg.sent
-                ? { background: "linear-gradient(135deg,rgba(0,255,255,0.1),rgba(0,255,255,0.05))", border: "1px solid rgba(0,255,255,0.3)", boxShadow: "0 0 10px rgba(0,255,255,0.1)" }
+                ? { background: `linear-gradient(135deg,${myColor}18,${myColor}08)`, border: `1px solid ${myColor}50`, boxShadow: `0 0 10px ${myColor}15` }
                 : { background: "linear-gradient(135deg,rgba(191,0,255,0.1),rgba(191,0,255,0.05))", border: "1px solid rgba(191,0,255,0.3)", boxShadow: "0 0 10px rgba(191,0,255,0.1)" }}>
-              <div className="text-sm" style={{ fontFamily: "'IBM Plex Mono', monospace", color: msg.sent ? "#00ffff" : "#bf00ff" }}>{msg.text}</div>
+              <div className="text-sm" style={{ fontFamily: "'IBM Plex Mono', monospace", color: msg.sent ? myColor : "#bf00ff" }}>{msg.text}</div>
               <div className="flex items-center gap-1.5 mt-1.5">
                 {msg.encrypted && (
                   <span className="flex items-center gap-1" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "#00ff41", textShadow: "0 0 5px #00ff41", letterSpacing: "0.1em" }}>
@@ -189,7 +192,7 @@ function ChatView({ chat, onBack }: { chat: typeof CHATS_DATA[0]; onBack: () => 
   );
 }
 
-function ChatsSection() {
+function ChatsSection({ myName, myColor }: { myName: string; myColor: string }) {
   const [active, setActive] = useState<typeof CHATS_DATA[0] | null>(null);
   return (
     <div className="flex h-full">
@@ -227,7 +230,7 @@ function ChatsSection() {
       </div>
       <div className={`${active ? "flex" : "hidden md:flex"} flex-1 flex-col`}>
         {active
-          ? <ChatView chat={active} onBack={() => setActive(null)} />
+          ? <ChatView chat={active} onBack={() => setActive(null)} myName={myName} myColor={myColor} />
           : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4" style={{ opacity: 0.25 }}>
               <Icon name="Lock" size={48} style={{ color: "#00ffff" }} />
@@ -421,6 +424,7 @@ function ProfileSection() {
     localStorage.setItem("taxe_bio", draftBio.trim());
     localStorage.setItem("taxe_color", draftColor);
     localStorage.setItem("taxe_status", draftStatus);
+    window.dispatchEvent(new Event("taxe_profile_updated"));
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -666,12 +670,51 @@ function SettingsSection() {
   );
 }
 
+// --- Global profile hook ---
+function useProfile() {
+  const [name, setNameState] = useState(() => localStorage.getItem("taxe_name") || "TX_U53R");
+  const [color, setColorState] = useState(() => localStorage.getItem("taxe_color") || "#00ffff");
+  const [status, setStatusState] = useState(() => localStorage.getItem("taxe_status") || "online");
+
+  const setName = (v: string) => { setNameState(v); localStorage.setItem("taxe_name", v); };
+  const setColor = (v: string) => { setColorState(v); localStorage.setItem("taxe_color", v); };
+  const setStatus = (v: string) => { setStatusState(v); localStorage.setItem("taxe_status", v); };
+
+  useEffect(() => {
+    const onStorage = () => {
+      setNameState(localStorage.getItem("taxe_name") || "TX_U53R");
+      setColorState(localStorage.getItem("taxe_color") || "#00ffff");
+      setStatusState(localStorage.getItem("taxe_status") || "online");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  return { name, color, status, setName, setColor, setStatus };
+}
+
 export default function Index() {
   const [section, setSection] = useState<Section>("chats");
   const [time, setTime] = useState(new Date());
+  const profile = useProfile();
+
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
 
+  // Listen for profile updates within same tab
+  useEffect(() => {
+    const onProfile = () => {
+      profile.setName(localStorage.getItem("taxe_name") || "TX_U53R");
+      profile.setColor(localStorage.getItem("taxe_color") || "#00ffff");
+      profile.setStatus(localStorage.getItem("taxe_status") || "online");
+    };
+    window.addEventListener("taxe_profile_updated", onProfile);
+    return () => window.removeEventListener("taxe_profile_updated", onProfile);
+  }, []);
+
   const unreadCount = NOTIFICATIONS_DATA.filter(n => !n.read).length;
+  const avatarText = profile.name.slice(0, 2).toUpperCase();
+  const statusColor = STATUS_OPTIONS.find(s => s.value === profile.status)?.color || "#00ff41";
+
   const navItems: { id: Section; icon: string; label: string }[] = [
     { id: "chats", icon: "MessageSquare", label: "ЧАТЫ" },
     { id: "contacts", icon: "Users", label: "КОНТАКТЫ" },
@@ -683,7 +726,7 @@ export default function Index() {
 
   const renderSection = () => {
     switch (section) {
-      case "chats": return <ChatsSection />;
+      case "chats": return <ChatsSection myName={profile.name} myColor={profile.color} />;
       case "contacts": return <ContactsSection />;
       case "notifications": return <NotificationsSection />;
       case "search": return <SearchSection />;
@@ -732,11 +775,11 @@ export default function Index() {
             <button key={item.id} onClick={() => setSection(item.id)}
               className="w-full flex items-center gap-3 px-4 py-3 relative transition-all"
               style={{
-                borderLeft: section === item.id ? "2px solid #00ffff" : "2px solid transparent",
-                background: section === item.id ? "rgba(0,255,255,0.08)" : "transparent",
+                borderLeft: section === item.id ? `2px solid ${profile.color}` : "2px solid transparent",
+                background: section === item.id ? `${profile.color}10` : "transparent",
               }}>
               <div className="relative flex-shrink-0">
-                <Icon name={item.icon} size={18} style={{ color: section === item.id ? "#00ffff" : "#334" }} />
+                <Icon name={item.icon} size={18} style={{ color: section === item.id ? profile.color : "#334" }} />
                 {item.id === "notifications" && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-black font-bold"
                     style={{ background: "#ff0080", fontSize: "8px", boxShadow: "0 0 6px #ff0080" }}>
@@ -745,18 +788,41 @@ export default function Index() {
                 )}
               </div>
               <span className="hidden md:block text-xs tracking-widest"
-                style={{ fontFamily: "'Orbitron', sans-serif", color: section === item.id ? "#00ffff" : "#334", fontSize: "10px" }}>
+                style={{ fontFamily: "'Orbitron', sans-serif", color: section === item.id ? profile.color : "#334", fontSize: "10px" }}>
                 {item.label}
               </span>
             </button>
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="hidden md:flex px-4 py-3 border-t items-center gap-2" style={{ borderColor: "rgba(0,255,255,0.08)" }}>
-          <div className="w-2 h-2 rounded-full" style={{ background: "#00ff41", boxShadow: "0 0 6px #00ff41" }} />
-          <span className="text-xs" style={{ color: "#334", fontFamily: "'Share Tech Mono', monospace" }}>E2E АКТИВНО</span>
-        </div>
+        {/* User card */}
+        <button onClick={() => setSection("profile")}
+          className="hidden md:flex px-3 py-3 border-t items-center gap-3 w-full transition-all hover:bg-white/5"
+          style={{ borderColor: "rgba(0,255,255,0.08)" }}>
+          <div className="relative flex-shrink-0">
+            <div className="w-8 h-8 rounded-sm flex items-center justify-center text-xs font-bold"
+              style={{
+                fontFamily: "'Orbitron', sans-serif",
+                background: `${profile.color}18`,
+                border: `1px solid ${profile.color}60`,
+                color: profile.color,
+                boxShadow: `0 0 8px ${profile.color}30`,
+              }}>
+              {avatarText}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-black"
+              style={{ background: statusColor, boxShadow: `0 0 4px ${statusColor}` }} />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-xs font-semibold truncate" style={{ fontFamily: "'Orbitron', sans-serif", color: profile.color, fontSize: "10px" }}>
+              {profile.name}
+            </div>
+            <div className="text-xs" style={{ color: "#334", fontFamily: "'Share Tech Mono', monospace", fontSize: "9px" }}>
+              E2E АКТИВНО
+            </div>
+          </div>
+          <Icon name="ChevronRight" size={12} style={{ color: "#334" }} />
+        </button>
       </aside>
 
       {/* Main */}
