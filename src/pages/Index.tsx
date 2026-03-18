@@ -393,13 +393,33 @@ function ProfileSection() {
   const [bio, setBio] = useState(() => localStorage.getItem("taxe_bio") || "");
   const [color, setColor] = useState(() => localStorage.getItem("taxe_color") || "#00ffff");
   const [status, setStatus] = useState(() => localStorage.getItem("taxe_status") || "online");
+  const [photo, setPhoto] = useState<string | null>(() => localStorage.getItem("taxe_photo"));
 
   const [draftName, setDraftName] = useState(name);
   const [draftBio, setDraftBio] = useState(bio);
   const [draftColor, setDraftColor] = useState(color);
   const [draftStatus, setDraftStatus] = useState(status);
+  const [draftPhoto, setDraftPhoto] = useState<string | null>(photo);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const avatarText = (draftName || name).slice(0, 2).toUpperCase();
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setDraftPhoto(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setDraftPhoto(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   useEffect(() => {
     const t = setInterval(() => { setGlitch(true); setTimeout(() => setGlitch(false), 300); }, 6000);
@@ -411,6 +431,7 @@ function ProfileSection() {
     setDraftBio(bio);
     setDraftColor(color);
     setDraftStatus(status);
+    setDraftPhoto(photo);
     setEditing(true);
   };
 
@@ -420,10 +441,13 @@ function ProfileSection() {
     setBio(draftBio.trim());
     setColor(draftColor);
     setStatus(draftStatus);
+    setPhoto(draftPhoto);
     localStorage.setItem("taxe_name", trimmed);
     localStorage.setItem("taxe_bio", draftBio.trim());
     localStorage.setItem("taxe_color", draftColor);
     localStorage.setItem("taxe_status", draftStatus);
+    if (draftPhoto) localStorage.setItem("taxe_photo", draftPhoto);
+    else localStorage.removeItem("taxe_photo");
     window.dispatchEvent(new Event("taxe_profile_updated"));
     setEditing(false);
     setSaved(true);
@@ -468,7 +492,7 @@ function ProfileSection() {
       <div className="flex flex-col items-center pt-8 pb-6 px-6">
         {/* Avatar */}
         <div className="relative mb-6">
-          <div className={`w-24 h-24 rounded-sm flex items-center justify-center text-3xl font-bold transition-all duration-300 ${glitch && !editing ? "glitch-text" : ""}`}
+          <div className={`w-24 h-24 rounded-sm overflow-hidden flex items-center justify-center text-3xl font-bold transition-all duration-300 ${glitch && !editing ? "glitch-text" : ""}`}
             data-text={avatarText}
             style={{
               fontFamily: "'Orbitron', sans-serif",
@@ -477,8 +501,33 @@ function ProfileSection() {
               color: editing ? draftColor : color,
               boxShadow: `0 0 30px ${editing ? draftColor : color}30, inset 0 0 20px ${editing ? draftColor : color}08`,
             }}>
-            {avatarText}
+            {(editing ? draftPhoto : photo) ? (
+              <img src={(editing ? draftPhoto : photo)!} alt="avatar"
+                className="w-full h-full object-cover" style={{ filter: "saturate(1.2) contrast(1.05)" }} />
+            ) : avatarText}
           </div>
+
+          {/* Upload button in edit mode */}
+          {editing && (
+            <button onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 w-24 h-24 rounded-sm flex flex-col items-center justify-center gap-1 transition-all opacity-0 hover:opacity-100"
+              style={{ background: "rgba(0,0,0,0.75)", border: `2px solid ${draftColor}80` }}>
+              <Icon name="Camera" size={20} style={{ color: draftColor }} />
+              <span className="text-xs" style={{ color: draftColor, fontFamily: "'Share Tech Mono', monospace", fontSize: "8px" }}>ЗАГРУЗИТЬ</span>
+            </button>
+          )}
+
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+
+          {/* Remove photo btn */}
+          {editing && draftPhoto && (
+            <button onClick={handleRemovePhoto}
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ background: "#ff0080", boxShadow: "0 0 6px #ff0080" }}>
+              <Icon name="X" size={10} style={{ color: "#fff" }} />
+            </button>
+          )}
+
           <div className="absolute -bottom-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: currentStatus.color, boxShadow: `0 0 8px ${currentStatus.color}` }}>
             <div className="w-2 h-2 rounded-full bg-black" />
@@ -675,22 +724,29 @@ function useProfile() {
   const [name, setNameState] = useState(() => localStorage.getItem("taxe_name") || "TX_U53R");
   const [color, setColorState] = useState(() => localStorage.getItem("taxe_color") || "#00ffff");
   const [status, setStatusState] = useState(() => localStorage.getItem("taxe_status") || "online");
+  const [photo, setPhotoState] = useState<string | null>(() => localStorage.getItem("taxe_photo"));
 
   const setName = (v: string) => { setNameState(v); localStorage.setItem("taxe_name", v); };
   const setColor = (v: string) => { setColorState(v); localStorage.setItem("taxe_color", v); };
   const setStatus = (v: string) => { setStatusState(v); localStorage.setItem("taxe_status", v); };
 
+  const refresh = () => {
+    setNameState(localStorage.getItem("taxe_name") || "TX_U53R");
+    setColorState(localStorage.getItem("taxe_color") || "#00ffff");
+    setStatusState(localStorage.getItem("taxe_status") || "online");
+    setPhotoState(localStorage.getItem("taxe_photo"));
+  };
+
   useEffect(() => {
-    const onStorage = () => {
-      setNameState(localStorage.getItem("taxe_name") || "TX_U53R");
-      setColorState(localStorage.getItem("taxe_color") || "#00ffff");
-      setStatusState(localStorage.getItem("taxe_status") || "online");
+    window.addEventListener("storage", refresh);
+    window.addEventListener("taxe_profile_updated", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("taxe_profile_updated", refresh);
     };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  return { name, color, status, setName, setColor, setStatus };
+  return { name, color, status, photo, setName, setColor, setStatus };
 }
 
 export default function Index() {
@@ -700,16 +756,7 @@ export default function Index() {
 
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
 
-  // Listen for profile updates within same tab
-  useEffect(() => {
-    const onProfile = () => {
-      profile.setName(localStorage.getItem("taxe_name") || "TX_U53R");
-      profile.setColor(localStorage.getItem("taxe_color") || "#00ffff");
-      profile.setStatus(localStorage.getItem("taxe_status") || "online");
-    };
-    window.addEventListener("taxe_profile_updated", onProfile);
-    return () => window.removeEventListener("taxe_profile_updated", onProfile);
-  }, []);
+
 
   const unreadCount = NOTIFICATIONS_DATA.filter(n => !n.read).length;
   const avatarText = profile.name.slice(0, 2).toUpperCase();
@@ -800,7 +847,7 @@ export default function Index() {
           className="hidden md:flex px-3 py-3 border-t items-center gap-3 w-full transition-all hover:bg-white/5"
           style={{ borderColor: "rgba(0,255,255,0.08)" }}>
           <div className="relative flex-shrink-0">
-            <div className="w-8 h-8 rounded-sm flex items-center justify-center text-xs font-bold"
+            <div className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center text-xs font-bold"
               style={{
                 fontFamily: "'Orbitron', sans-serif",
                 background: `${profile.color}18`,
@@ -808,7 +855,9 @@ export default function Index() {
                 color: profile.color,
                 boxShadow: `0 0 8px ${profile.color}30`,
               }}>
-              {avatarText}
+              {profile.photo
+                ? <img src={profile.photo} alt="avatar" className="w-full h-full object-cover" />
+                : avatarText}
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-black"
               style={{ background: statusColor, boxShadow: `0 0 4px ${statusColor}` }} />
