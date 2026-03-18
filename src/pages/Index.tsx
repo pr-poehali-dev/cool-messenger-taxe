@@ -402,6 +402,7 @@ function ProfileSection() {
   const [draftPhoto, setDraftPhoto] = useState<string | null>(photo);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const avatarText = (draftName || name).slice(0, 2).toUpperCase();
 
@@ -509,15 +510,25 @@ function ProfileSection() {
 
           {/* Upload button in edit mode */}
           {editing && (
-            <button onClick={() => fileInputRef.current?.click()}
-              className="absolute inset-0 w-24 h-24 rounded-sm flex flex-col items-center justify-center gap-1 transition-all opacity-0 hover:opacity-100"
-              style={{ background: "rgba(0,0,0,0.75)", border: `2px solid ${draftColor}80` }}>
-              <Icon name="Camera" size={20} style={{ color: draftColor }} />
-              <span className="text-xs" style={{ color: draftColor, fontFamily: "'Share Tech Mono', monospace", fontSize: "8px" }}>ЗАГРУЗИТЬ</span>
-            </button>
+            <div className="absolute inset-0 w-24 h-24 rounded-sm flex flex-col items-center justify-center gap-1.5 opacity-0 hover:opacity-100 transition-all"
+              style={{ background: "rgba(0,0,0,0.82)", border: `2px solid ${draftColor}80` }}>
+              <button onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-sm transition-all hover:opacity-80"
+                style={{ background: `${draftColor}20`, border: `1px solid ${draftColor}60` }}>
+                <Icon name="Camera" size={12} style={{ color: draftColor }} />
+                <span style={{ color: draftColor, fontFamily: "'Share Tech Mono', monospace", fontSize: "8px" }}>КАМЕРА</span>
+              </button>
+              <button onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-sm transition-all hover:opacity-80"
+                style={{ background: `${draftColor}20`, border: `1px solid ${draftColor}60` }}>
+                <Icon name="Image" size={12} style={{ color: draftColor }} />
+                <span style={{ color: draftColor, fontFamily: "'Share Tech Mono', monospace", fontSize: "8px" }}>ГАЛЕРЕЯ</span>
+              </button>
+            </div>
           )}
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoUpload} />
 
           {/* Remove photo btn */}
           {editing && draftPhoto && (
