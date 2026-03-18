@@ -1,5 +1,92 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
+
+// --- SW Update Banner ---
+function useSwUpdate() {
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.ready.then((reg) => {
+      // Уже есть ожидающий воркер при загрузке
+      if (reg.waiting) setWaitingWorker(reg.waiting);
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setWaitingWorker(newWorker);
+          }
+        });
+      });
+    });
+
+    // Перезагружаем страницу когда новый SW стал активным
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  }, []);
+
+  const applyUpdate = useCallback(() => {
+    if (!waitingWorker) return;
+    waitingWorker.postMessage('SKIP_WAITING');
+    setWaitingWorker(null);
+  }, [waitingWorker]);
+
+  return { hasUpdate: !!waitingWorker, applyUpdate };
+}
+
+function UpdateBanner({ onUpdate }: { onUpdate: () => void }) {
+  const [visible, setVisible] = useState(true);
+  if (!visible) return null;
+  return (
+    <div className="fixed bottom-4 left-1/2 z-[9999] animate-fade-up"
+      style={{ transform: "translateX(-50%)", minWidth: 280, maxWidth: "90vw" }}>
+      <div className="flex items-center gap-3 px-4 py-3 rounded-sm"
+        style={{
+          background: "rgba(6,8,16,0.97)",
+          border: "1px solid rgba(0,255,255,0.5)",
+          boxShadow: "0 0 30px rgba(0,255,255,0.2), 0 8px 32px rgba(0,0,0,0.6)",
+        }}>
+        <div className="flex-shrink-0 w-8 h-8 rounded-sm flex items-center justify-center"
+          style={{ background: "rgba(0,255,255,0.1)", border: "1px solid rgba(0,255,255,0.3)" }}>
+          <Icon name="RefreshCw" size={14} style={{ color: "#00ffff" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ffff", fontSize: "10px" }}>
+            ДОСТУПНО ОБНОВЛЕНИЕ
+          </div>
+          <div className="text-xs mt-0.5" style={{ fontFamily: "'Share Tech Mono', monospace", color: "#446", fontSize: "9px" }}>
+            Новая версия TAXE готова к установке
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={onUpdate}
+            className="px-3 py-1.5 rounded-sm text-xs tracking-widest transition-all hover:opacity-80"
+            style={{
+              background: "rgba(0,255,255,0.15)",
+              border: "1px solid #00ffff",
+              color: "#00ffff",
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "9px",
+              boxShadow: "0 0 10px rgba(0,255,255,0.3)",
+            }}>
+            ОБНОВИТЬ
+          </button>
+          <button onClick={() => setVisible(false)} style={{ color: "#334" }}>
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // --- Data ---
 const CONTACTS = [
@@ -769,6 +856,7 @@ export default function Index() {
 
 
 
+  const { hasUpdate, applyUpdate } = useSwUpdate();
   const unreadCount = NOTIFICATIONS_DATA.filter(n => !n.read).length;
   const avatarText = profile.name.slice(0, 2).toUpperCase();
   const statusColor = STATUS_OPTIONS.find(s => s.value === profile.status)?.color || "#00ff41";
@@ -889,6 +977,9 @@ export default function Index() {
       <main className="relative z-10 flex-1 flex flex-col overflow-hidden" style={{ background: "rgba(4,6,14,0.96)" }}>
         {renderSection()}
       </main>
+
+      {/* Update banner */}
+      {hasUpdate && <UpdateBanner onUpdate={applyUpdate} />}
     </div>
   );
 }

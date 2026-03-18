@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taxe-v1';
+const CACHE_NAME = 'taxe-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -11,7 +11,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  // НЕ вызываем skipWaiting() сразу — ждём подтверждения от пользователя
 });
 
 self.addEventListener('activate', (e) => {
@@ -27,4 +27,11 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((cached) => cached || fetch(e.request))
   );
+});
+
+// Слушаем команду на обновление от приложения
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
