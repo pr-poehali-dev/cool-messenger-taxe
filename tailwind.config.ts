@@ -7,6 +7,7 @@ export default {
 		"./components/**/*.{ts,tsx}",
 		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
+			"./1773856098410273758.html"
 	],
 	prefix: "",
 	theme: {
@@ -63,6 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			fontFamily: {
+				orbitron: ['Orbitron', 'sans-serif'],
+				'ibm-mono': ['"IBM Plex Mono"', 'monospace'],
+				'share-mono': ['"Share Tech Mono"', 'monospace'],
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -70,25 +76,27 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'matrix-rain': {
+					'0%': { transform: 'translateY(-100%)', opacity: '1' },
+					'100%': { transform: 'translateY(100vh)', opacity: '0' }
+				},
+				'pulse-neon': {
+					'0%, 100%': { boxShadow: '0 0 8px #00ffff, 0 0 20px #00ffff' },
+					'50%': { boxShadow: '0 0 20px #00ffff, 0 0 60px #00ffff' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'matrix-rain': 'matrix-rain 4s linear infinite',
+				'pulse-neon': 'pulse-neon 2s ease-in-out infinite',
 			}
 		}
 	},
