@@ -817,6 +817,154 @@ function SettingsSection() {
   );
 }
 
+const AUTH_URL = "https://functions.poehali.dev/08d5aa04-b127-4f1e-b7ba-8c28245b787e";
+
+// --- Auth Screen ---
+function AuthScreen({ onAuth }: { onAuth: (token: string, user: Record<string, unknown>) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    if (!email || !password || (mode === "register" && !username)) {
+      setError("Заполни все поля"); return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: mode, email, password, username }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Ошибка сервера"); return; }
+      onAuth(data.token, data.user);
+    } catch {
+      setError("Нет связи с сервером");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center" style={{ background: "#060810" }}>
+      <MatrixBg />
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.012) 2px, rgba(0,255,255,0.012) 4px)"
+      }} />
+
+      <div className="relative z-10 w-full max-w-sm mx-4">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sm mb-4"
+            style={{ background: "rgba(0,255,255,0.08)", border: "2px solid rgba(0,255,255,0.4)", boxShadow: "0 0 40px rgba(0,255,255,0.2)" }}>
+            <span style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 22, color: "#00ffff", textShadow: "0 0 15px #00ffff" }}>TX</span>
+          </div>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900, letterSpacing: "0.4em", fontSize: 28, color: "#00ffff", textShadow: "0 0 20px #00ffff" }}>TAXE</div>
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#00ff41", letterSpacing: "0.2em", marginTop: 4 }}>● ЗАШИФРОВАННЫЙ МЕССЕНДЖЕР</div>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-sm p-6" style={{ background: "rgba(6,10,24,0.95)", border: "1px solid rgba(0,255,255,0.2)", boxShadow: "0 0 60px rgba(0,255,255,0.08)" }}>
+          {/* Tabs */}
+          <div className="flex mb-6 rounded-sm overflow-hidden" style={{ border: "1px solid rgba(0,255,255,0.15)" }}>
+            {(["login", "register"] as const).map(m => (
+              <button key={m} onClick={() => { setMode(m); setError(""); }}
+                className="flex-1 py-2.5 text-xs tracking-widest transition-all"
+                style={{
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontSize: 10,
+                  background: mode === m ? "rgba(0,255,255,0.12)" : "transparent",
+                  color: mode === m ? "#00ffff" : "#334",
+                  borderRight: m === "login" ? "1px solid rgba(0,255,255,0.15)" : "none",
+                  boxShadow: mode === m ? "inset 0 0 20px rgba(0,255,255,0.05)" : "none",
+                }}>
+                {m === "login" ? "ВОЙТИ" : "СОЗДАТЬ АК"}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            {/* Email */}
+            <div>
+              <div className="text-xs mb-1.5 tracking-widest" style={{ color: "#334", fontFamily: "'Share Tech Mono', monospace" }}>EMAIL</div>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-sm" style={{ border: "1px solid rgba(0,255,255,0.2)", background: "rgba(0,255,255,0.03)" }}>
+                <Icon name="Mail" size={14} style={{ color: "#334" }} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: "#00ffff", fontFamily: "'IBM Plex Mono', monospace", caretColor: "#00ffff" }}
+                  placeholder="agent@taxe.app" />
+              </div>
+            </div>
+
+            {/* Username (only register) */}
+            {mode === "register" && (
+              <div>
+                <div className="text-xs mb-1.5 tracking-widest" style={{ color: "#334", fontFamily: "'Share Tech Mono', monospace" }}>ИМЯ АГЕНТА</div>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-sm" style={{ border: "1px solid rgba(0,255,255,0.2)", background: "rgba(0,255,255,0.03)" }}>
+                  <Icon name="User" size={14} style={{ color: "#334" }} />
+                  <input type="text" value={username} onChange={e => setUsername(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && submit()}
+                    className="flex-1 bg-transparent outline-none text-sm"
+                    style={{ color: "#00ffff", fontFamily: "'IBM Plex Mono', monospace", caretColor: "#00ffff" }}
+                    placeholder="TX_AGENT" maxLength={20} />
+                </div>
+              </div>
+            )}
+
+            {/* Password */}
+            <div>
+              <div className="text-xs mb-1.5 tracking-widest" style={{ color: "#334", fontFamily: "'Share Tech Mono', monospace" }}>ПАРОЛЬ</div>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-sm" style={{ border: "1px solid rgba(0,255,255,0.2)", background: "rgba(0,255,255,0.03)" }}>
+                <Icon name="Lock" size={14} style={{ color: "#334" }} />
+                <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: "#00ffff", fontFamily: "'IBM Plex Mono', monospace", caretColor: "#00ffff" }}
+                  placeholder="••••••••" />
+                <button onClick={() => setShowPass(v => !v)} style={{ color: "#334" }}>
+                  <Icon name={showPass ? "EyeOff" : "Eye"} size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="px-3 py-2 rounded-sm text-xs" style={{ border: "1px solid rgba(255,0,128,0.3)", background: "rgba(255,0,128,0.06)", color: "#ff0080", fontFamily: "'Share Tech Mono', monospace" }}>
+                ⚠ {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button onClick={submit} disabled={loading}
+              className="w-full py-3 rounded-sm text-xs tracking-widest transition-all mt-2"
+              style={{
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: 11,
+                background: loading ? "rgba(0,255,255,0.05)" : "rgba(0,255,255,0.12)",
+                border: "1px solid rgba(0,255,255,0.5)",
+                color: loading ? "#334" : "#00ffff",
+                boxShadow: loading ? "none" : "0 0 20px rgba(0,255,255,0.15)",
+              }}>
+              {loading ? "ШИФРОВАНИЕ..." : mode === "login" ? "ВОЙТИ В СИСТЕМУ" : "СОЗДАТЬ АККАУНТ"}
+            </button>
+          </div>
+        </div>
+
+        <div className="text-center mt-4 text-xs" style={{ color: "#223", fontFamily: "'Share Tech Mono', monospace" }}>
+          AES-256 · END-TO-END · ZERO KNOWLEDGE
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Global profile hook ---
 function useProfile() {
   const [name, setNameState] = useState(() => localStorage.getItem("taxe_name") || "TX_U53R");
@@ -848,15 +996,33 @@ function useProfile() {
 }
 
 export default function Index() {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("taxe_token"));
   const [section, setSection] = useState<Section>("chats");
   const [time, setTime] = useState(new Date());
   const profile = useProfile();
 
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
 
+  const handleAuth = (newToken: string, user: Record<string, unknown>) => {
+    localStorage.setItem("taxe_token", newToken);
+    localStorage.setItem("taxe_name", (user.username as string) || "TX_U53R");
+    localStorage.setItem("taxe_color", (user.color as string) || "#00ffff");
+    localStorage.setItem("taxe_status", (user.status as string) || "online");
+    localStorage.setItem("taxe_bio", (user.bio as string) || "");
+    if (user.photo) localStorage.setItem("taxe_photo", user.photo as string);
+    window.dispatchEvent(new Event("taxe_profile_updated"));
+    setToken(newToken);
+  };
 
+  const handleLogout = () => {
+    fetch(AUTH_URL, { method: "POST", headers: { "Content-Type": "application/json", "X-Session-Token": token || "" }, body: JSON.stringify({ action: "logout" }) });
+    localStorage.removeItem("taxe_token");
+    setToken(null);
+  };
 
   const { hasUpdate, applyUpdate } = useSwUpdate();
+
+  if (!token) return <AuthScreen onAuth={handleAuth} />;
   const unreadCount = NOTIFICATIONS_DATA.filter(n => !n.read).length;
   const avatarText = profile.name.slice(0, 2).toUpperCase();
   const statusColor = STATUS_OPTIONS.find(s => s.value === profile.status)?.color || "#00ff41";
@@ -970,6 +1136,14 @@ export default function Index() {
             </div>
           </div>
           <Icon name="ChevronRight" size={12} style={{ color: "#334" }} />
+        </button>
+
+        {/* Logout */}
+        <button onClick={handleLogout}
+          className="hidden md:flex px-4 py-2.5 items-center gap-2 w-full transition-all hover:bg-red-950/20"
+          style={{ borderTop: "1px solid rgba(255,0,128,0.08)" }}>
+          <Icon name="LogOut" size={14} style={{ color: "#334" }} />
+          <span className="text-xs tracking-widest" style={{ fontFamily: "'Share Tech Mono', monospace", color: "#334", fontSize: "9px" }}>ВЫЙТИ</span>
         </button>
       </aside>
 

@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Register duplicate user returns 409",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "register", "email": "test@taxe.app", "username": "TEST_AGENT", "password": "secret123"},
+      "expectedStatus": 409
+    },
+    {
+      "name": "Login with wrong password returns 401",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "email": "test@taxe.app", "password": "wrongpass"},
+      "expectedStatus": 401
+    },
+    {
+      "name": "GET /me without token",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    }
+  ]
+}
